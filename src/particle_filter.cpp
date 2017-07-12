@@ -34,13 +34,12 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   num_particles = 100;
 
   // Setup a random number generator
-  random_device rd;
-  mt19937 gen(rd());
+  default_random_engine gen;
 
   // Setup a normal distribution for x, y, and theta
-  normal_distribution<> nd_x(x, std[0]);
-  normal_distribution<> nd_y(y, std[1]);
-  normal_distribution<> nd_theta(theta, std[2]);
+  normal_distribution<double> nd_x(x, std[0]);
+  normal_distribution<double> nd_y(y, std[1]);
+  normal_distribution<double> nd_theta(theta, std[2]);
 
   // Initialize the particles
   for (int i = 0; i < num_particles; i++) {
