@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <iterator>
+#include <cfloat>
 
 #include "particle_filter.h"
 
@@ -114,6 +115,35 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
   // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
   //   implement this method and use it as a helper during the updateWeights phase.
 
+  // Loop through each observed measurements
+  for (int i = 0; i < observations.size(); i++) {
+
+    LandmarkObs o = observations[i];
+
+    // Initialize the minimum distance (squared) to be the maximum double value
+    double min_dist_sq = DBL_MAX;
+
+    // Loop through all predicted measurements
+    for (LandmarkObs p : predicted) {
+
+      // Calculate the square of the distance between the predicted and observed measurement.
+      // We don't need to perform the square root because we only care about relative distances
+      // and the square root would cost more time.
+      double dx = p.x - o.x;
+      double dy = p.y - o.y;
+      double dist_sq = (dx * dx) + (dy * dy);
+
+      // If the squared distance is less than the minimum
+      if (dist_sq < min_dist_sq) {
+
+        // Record the map id of the predicted measurement
+        observations[i].id = p.id;
+
+        // Set the minimum to the current one
+        min_dist_sq = dist_sq;
+      }
+    } 
+  }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -128,6 +158,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   //   and the following is a good resource for the actual equation to implement (look at equation 
   //   3.33
   //   http://planning.cs.uiuc.edu/node99.html
+
+  
 }
 
 void ParticleFilter::resample() {
