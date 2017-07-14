@@ -198,8 +198,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       if (dist_sq <= sensor_range_sq) {
 
         LandmarkObs pred;
-	pred.x = dx;
-	pred.y = dy;
+	pred.x = l.x_f;
+	pred.y = l.y_f;
 	pred.id = l.id_i;
 
 	predicted.push_back(pred);
