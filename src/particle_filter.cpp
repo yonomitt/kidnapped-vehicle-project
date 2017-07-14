@@ -90,15 +90,29 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   // Precalculate v / theta_dot to avoid doing it many times
   double v_over_yaw_rate = velocity / yaw_rate;
 
+  // Precalculate v * dt for use when the yaw rate is close to zero
+  double v_dt = velocity * delta_t;
+
   // Loop through all particles and add the measurment plus some noise to them
   for (int i = 0; i < num_particles; i++) {
 
     Particle p = particles[i];
 
     // Update the measurements
-    p.x += v_over_yaw_rate * (sin(p.theta + yaw_rate_dt) - sin(p.theta));
-    p.y += v_over_yaw_rate * (sin(p.theta + yaw_rate_dt) - sin(p.theta));
-    p.theta += yaw_rate_dt;
+    if (fabs(yaw_rate) > 0.001) {
+
+      // If the yaw rate is not close to zero, use the full equations
+      p.x += v_over_yaw_rate * (sin(p.theta + yaw_rate_dt) - sin(p.theta));
+      p.y += v_over_yaw_rate * (cos(p.theta) - cos(p.theta + yaw_rate_dt));
+      p.theta += yaw_rate_dt;
+
+    } else {
+
+      // If the yaw rate is close to zero, use the simplified equations
+      p.x += v_dt * cos(p.theta);
+      p.y += v_dt * sin(p.theta);
+
+    }
 
     // Add some Gaussian noise
     p.x += nd_x(gen);
