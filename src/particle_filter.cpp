@@ -15,6 +15,7 @@
 #include <string>
 #include <iterator>
 #include <cfloat>
+#include <map>
 
 #include "particle_filter.h"
 
@@ -159,7 +160,88 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   //   3.33
   //   http://planning.cs.uiuc.edu/node99.html
 
-  
+  // Some things can be calculated outside the loop for efficiency
+  double sensor_range_sq = sensor_range * sensor_range;
+  double std_x = std_landmark[0];
+  double std_y = std_landmark[1];
+  double gaussian_coeff = 1 / (2.0 * M_PI * std_x * std_y);
+  double gaussian_x_denom = 2 * std_x * std_x;
+  double gaussian_y_denom = 2 * std_y * std_y;
+
+  // Clear the weights vector
+  weights.clear();
+
+  // Loop through every particle
+  for (int i = 0; i < num_particles; i++) {
+
+    Particle p = particles[i];
+
+    // Vector to store the landmarks in range of the particle
+    std::vector<LandmarkObs> predicted;
+
+    // Map to look up landmarks by id
+    std::map<int, LandmarkObs> predicted_map;
+
+    // Vector to store the transformed observations
+    std::vector<LandmarkObs> transformed_observations;
+
+    // Filter map_landmarks based on distance to the particle and the sensor_range
+    for (Map::single_landmark_s l : map_landmarks.landmark_list) {
+
+      // Calculate the squared distance between the particle and the map landmark
+      double dx = l.x_f - p.x;
+      double dy = l.y_f - p.y;
+      double dist_sq = (dx * dx) + (dy * dy);
+
+      // If the landmark is within sensor range, add it to the predicted vector
+      // and the predicted map (to make lookup by id faster and easier)
+      if (dist_sq <= sensor_range_sq) {
+
+        LandmarkObs pred;
+	pred.x = dx;
+	pred.y = dy;
+	pred.id = l.id_i;
+
+	predicted.push_back(pred);
+	predicted_map[pred.id] = pred;
+      }
+    }
+
+    // Calculate some values that are reused a lot
+    double cos_theta = cos(p.theta);
+    double sin_theta = sin(p.theta);
+
+    // Transform the observations to map coordinates
+    for (LandmarkObs o : observations) {
+
+      LandmarkObs t;
+      t.x = o.x * cos_theta - o.y * sin_theta + p.x;
+      t.y = o.x * sin_theta + o.y * cos_theta + p.y;
+
+      transformed_observations.push_back(t);
+    }
+
+    // Data associate the predicted and the transformed observations
+    dataAssociation(predicted, transformed_observations);
+
+    // Calculate the weights based on Sebastian's lesson:
+    //     prob *= self.Gaussian(dist, self.sense_noise, measurement[i])
+    // But use a multivariate Gaussian, instead of a single dimension one
+    double weight = 1.0;
+    for (LandmarkObs o : transformed_observations) {
+
+      LandmarkObs pred = predicted_map[o.id];
+
+      double dx = o.x - pred.x;
+      double dy = o.y - pred.y;
+
+      weight *= gaussian_coeff * exp(-(((dx * dx) / gaussian_x_denom) + ((dy * dy) / gaussian_y_denom)));
+    }
+
+    // Store the new weight
+    particles[i].weight = weight;
+    weights.push_back(weight);
+  }
 }
 
 void ParticleFilter::resample() {
