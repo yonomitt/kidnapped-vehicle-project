@@ -249,6 +249,28 @@ void ParticleFilter::resample() {
   // NOTE: You may find std::discrete_distribution helpful here.
   //   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
+  // Setup a random number generator
+  default_random_engine gen;
+
+  // Discrete distribution produces random integers on the interval [0, n), where the probability
+  // of each individual integer is proportional to its weight. Perfect for this function!
+  std::discrete_distribution<double> distribution(weights.begin(), weights.end());
+
+  // Vector to store the resampled particles
+  std::vector<Particle> resampled;
+
+  // We want to resample `num_particles` times
+  for (int i = 0; i < num_particles; i++) {
+  
+    // Sample from the discrete distribution
+    int random_idx = distribution(gen);
+
+    // Store the particle associated with the random index into the resampled array
+    resampled.push_back(particles[random_idx]);  
+  }
+
+  // Copy over the resampled particles to the particles vector
+  particles = resampled;
 }
 
 Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)
